@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>미끄럼반사 테셀레이션 체험</title>
+  <style>
+    canvas { border: 1px solid black; cursor: crosshair; }
+  </style>
+</head>
+<body>
+  <h2>미끄럼반사 예제</h2>
+  <p>검은 선을 그려보세요. 파란 선을 기준으로 반사되어 빨간 선이 그려집니다.</p>
+  <canvas id="canvas" width="600" height="400"></canvas>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const A = {x: 150, y: 100};
+    const B = {x: 450, y: 150};
+    const offset = {x: 30, y: 30};
+    let drawing = false;
+    let currentPath = [];
+    let paths = [];
+    let reflectedPaths = [];
+
+    canvas.addEventListener('mousedown', e => {
+      drawing = true;
+      currentPath = [getMousePos(e)];
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      if (!drawing) return;
+      currentPath.push(getMousePos(e));
+      draw();
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      if (drawing) {
+        paths.push([...currentPath]);
+        reflectedPaths.push(reflectAndGlide(currentPath, A, B, offset));
+      }
+      drawing = false;
+      draw();
+    });
+
+    function getMousePos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    function reflectPointAcrossLine(p, a, b) {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const apx = p.x - a.x;
+      const apy = p.y - a.y;
+      const lenSq = dx * dx + dy * dy;
+      const dot = apx * dx + apy * dy;
+      const projX = a.x + (dot / lenSq) * dx;
+      const projY = a.y + (dot / lenSq) * dy;
+      return { x: 2 * projX - p.x, y: 2 * projY - p.y };
+    }
+
+    function reflectAndGlide(path, a, b, offset) {
+      return path.map(p => {
+        const reflected = reflectPointAcrossLine(p, a, b);
+        return { x: reflected.x + offset.x, y: reflected.y + offset.y };
+      });
+    }
+
+    function drawLine(p1, p2, style = 'black') {
+      ctx.strokeStyle = style;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    }
+
+    function drawPath(path, style = 'black') {
+      if (path.length < 2) return;
+      ctx.strokeStyle = style;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for (let i = 1; i < path.length; i++) {
+        ctx.lineTo(path[i].x, path[i].y);
+      }
+      ctx.stroke();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawLine(A, B, 'blue');
+      paths.forEach(p => drawPath(p, 'black'));
+      drawPath(currentPath, 'gray');
+      reflectedPaths.forEach(p => drawPath(p, 'red'));
+    }
+
+    draw();
+  </script>
+</body>
+</html>
